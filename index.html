@@ -50,12 +50,10 @@
     let username = '';
     let socket;
 
-    // Get username from the input field
     document.getElementById('username').addEventListener('input', function(event) {
       username = event.target.value;
     });
 
-    // Open WebSocket connection when the page loads
     function connectWebSocket() {
       socket = new WebSocket('ws://your-vercel-app-url');
       
@@ -66,12 +64,10 @@
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'message') {
-          // Display new message
           const messageElement = document.createElement('p');
           messageElement.innerHTML = `<strong>${data.username}</strong>: ${data.text}`;
           document.getElementById('messages').appendChild(messageElement);
         } else if (data.type === 'history') {
-          // Display previous messages
           data.messages.forEach((msg) => {
             const messageElement = document.createElement('p');
             messageElement.innerHTML = `<strong>${msg.username}</strong>: ${msg.text}`;
@@ -89,23 +85,23 @@
       };
     }
 
-    // Call this function when sending a message
     function sendMessage() {
       const messageInput = document.getElementById('message');
       const message = messageInput.value;
 
-      if (message && username) {
-        // Send the message with the username to the server via WebSocket
+      if (message && username && socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ username, text: message }));
-
-        // Clear the input field
         messageInput.value = '';
       } else {
-        alert('Please enter both a username and a message.');
+        if (!username) {
+          alert('Please enter a username.');
+        } else if (socket.readyState !== WebSocket.OPEN) {
+          alert('WebSocket connection is not open yet.');
+        }
       }
     }
 
-    connectWebSocket();  // Connect WebSocket on page load
+    connectWebSocket();
   </script>
 
 </body>
