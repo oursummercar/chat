@@ -95,7 +95,7 @@
       } else {
         if (!username) {
           alert('Please enter a username.');
-        } else if (socket.readyState !== WebSocket.OPEN) {
+        } else if (!socket || socket.readyState !== WebSocket.OPEN) {
           alert('WebSocket connection is not open yet.');
         }
       }
