@@ -1,53 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Simple Chat</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #111; color: #eee; margin: 0; padding: 20px; }
-        #chat { height: 300px; overflow-y: scroll; border: 1px solid #555; padding: 10px; margin-bottom: 10px; }
-        input[type="text"] { width: 80%; padding: 10px; }
-        button { padding: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      width: 50%;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    #messages {
+      max-height: 300px;
+      overflow-y: scroll;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #fafafa;
+      border-radius: 5px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Simple Chat</h1>
-    <div id="chat"></div>
-    <input type="text" id="message" placeholder="Type your message..." />
+
+  <div class="container">
+    <h2>Simple Chat</h2>
+    <input type="text" id="username" placeholder="Enter your username" />
+    <div id="messages"></div>
+    <input type="text" id="message" placeholder="Type a message" />
     <button onclick="sendMessage()">Send</button>
+  </div>
 
-    <script>
-        const chat = document.getElementById('chat');
-        const messageInput = document.getElementById('message');
+  <script>
+    let username = '';
+    let socket;
 
-        fetch('/api/messages')
-            .then(response => response.json())
-            .then(data => {
-                data.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.textContent = msg.text;
-                    chat.appendChild(div);
-                });
-                chat.scrollTop = chat.scrollHeight;
-            });
+    // Get username from the input field
+    document.getElementById('username').addEventListener('input', function(event) {
+      username = event.target.value;
+    });
 
-        function sendMessage() {
-            const text = messageInput.value.trim();
-            if (text) {
-                fetch('/api/messages', {
-                    method: 'POST',
-                    body: JSON.stringify({ text }),
-                    headers: { 'Content-Type': 'application/json' }
-                })
-                .then(() => {
-                    const div = document.createElement('div');
-                    div.textContent = text;
-                    chat.appendChild(div);
-                    messageInput.value = '';
-                    chat.scrollTop = chat.scrollHeight;
-                });
-            }
+    // Open WebSocket connection when the page loads
+    function connectWebSocket() {
+      socket = new WebSocket('ws://your-vercel-app-url');
+      
+      socket.onopen = () => {
+        console.log('WebSocket connection established');
+      };
+      
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'message') {
+          // Display new message
+          const messageElement = document.createElement('p');
+          messageElement.innerHTML = `<strong>${data.username}</strong>: ${data.text}`;
+          document.getElementById('messages').appendChild(messageElement);
+        } else if (data.type === 'history') {
+          // Display previous messages
+          data.messages.forEach((msg) => {
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<strong>${msg.username}</strong>: ${msg.text}`;
+            document.getElementById('messages').appendChild(messageElement);
+          });
         }
-    </script>
+      };
+
+      socket.onerror = (error) => {
+        console.log('WebSocket error:', error);
+      };
+      
+      socket.onclose = () => {
+        console.log('WebSocket connection closed');
+      };
+    }
+
+    // Call this function when sending a message
+    function sendMessage() {
+      const messageInput = document.getElementById('message');
+      const message = messageInput.value;
+
+      if (message && username) {
+        // Send the message with the username to the server via WebSocket
+        socket.send(JSON.stringify({ username, text: message }));
+
+        // Clear the input field
+        messageInput.value = '';
+      } else {
+        alert('Please enter both a username and a message.');
+      }
+    }
+
+    connectWebSocket();  // Connect WebSocket on page load
+  </script>
+
 </body>
 </html>
